@@ -15,9 +15,8 @@
 package v3
 
 import (
-	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
-
 	"github.com/projectcalico/api/pkg/lib/numorstring"
+	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 )
 
 // +genclient:nonNamespaced
@@ -453,7 +452,8 @@ type FelixConfigurationSpec struct {
 
 	// IPForwarding controls whether Felix sets the host sysctls to enable IP forwarding.  IP forwarding is required
 	// when using Calico for workload networking.  This should only be disabled on hosts where Calico is used for
-	// host protection.  [Default: Enabled]
+	// host protection. In BPF mode, due to a kernel interaction, either IPForwarding must be enabled or BPFEnforceRPF
+	// must be disabled. [Default: Enabled]
 	// +kubebuilder:validation:Enum=Enabled;Disabled
 	IPForwarding string `json:"ipForwarding,omitempty"`
 
