@@ -37,11 +37,15 @@ clean:
 	rm -rf ./bin
 
 ci-preflight-checks:
+	$(MAKE) check-go-mod
 	$(MAKE) check-dockerfiles
 	$(MAKE) check-language
 	$(MAKE) generate
 	$(MAKE) fix-all
 	$(MAKE) check-dirty
+
+check-go-mod:
+	$(DOCKER_GO_BUILD) ./hack/check-go-mod.sh
 
 check-dockerfiles:
 	./hack/check-dockerfiles.sh
@@ -54,13 +58,16 @@ protobuf:
 	$(MAKE) -C cni-plugin protobuf
 	$(MAKE) -C felix protobuf
 	$(MAKE) -C pod2daemon protobuf
+	$(MAKE) -C goldmane protobuf
 
 generate:
 	$(MAKE) gen-semaphore-yaml
 	$(MAKE) protobuf
+	$(MAKE) -C lib gen-files
 	$(MAKE) -C api gen-files
 	$(MAKE) -C libcalico-go gen-files
 	$(MAKE) -C felix gen-files
+	$(MAKE) -C goldmane gen-files
 	$(MAKE) gen-manifests
 
 gen-manifests: bin/helm
@@ -125,6 +132,7 @@ e2e-test-adminpolicy:
 ###############################################################################
 # Release logic below
 ###############################################################################
+.PHONY: release release-publish create-release-branch release-test build-openstack publish-openstack release-notes
 # Build the release tool.
 release/bin/release: $(shell find ./release -type f -name '*.go')
 	$(MAKE) -C release
