@@ -70,6 +70,14 @@ const (
 	InternalOverride
 )
 
+// Default stats collection const used globally
+const (
+	DefaultAgeTimeout               = time.Duration(10) * time.Second
+	DefaultInitialReportingDelay    = time.Duration(5) * time.Second
+	DefaultExportingInterval        = time.Duration(1) * time.Second
+	DefaultConntrackPollingInterval = time.Duration(5) * time.Second
+)
+
 var SourcesInDescendingOrder = []Source{InternalOverride, EnvironmentVariable, ConfigFile, DatastorePerHost, DatastoreGlobal}
 
 func (source Source) String() string {
@@ -201,6 +209,7 @@ type Config struct {
 	BPFMapSizeRoute                    int               `config:"int;262144;non-zero"`
 	BPFMapSizeConntrack                int               `config:"int;512000;non-zero"`
 	BPFMapSizePerCPUConntrack          int               `config:"int;0"`
+	BPFMapSizeConntrackScaling         string            `config:"oneof(Disabled,DoubleIfFull);DoubleIfFull;non-zero"`
 	BPFMapSizeConntrackCleanupQueue    int               `config:"int;100000;non-zero"`
 	BPFMapSizeIPSets                   int               `config:"int;1048576;non-zero"`
 	BPFMapSizeIfState                  int               `config:"int;1000;non-zero"`
@@ -211,6 +220,7 @@ type Config struct {
 	BPFDisableGROForIfaces             *regexp.Regexp    `config:"regexp;"`
 	BPFExcludeCIDRsFromNAT             []string          `config:"cidr-list;;"`
 	BPFRedirectToPeer                  string            `config:"oneof(Disabled,Enabled,L2Only);L2Only;non-zero"`
+	BPFExportBufferSizeMB              int               `config:"int;1;non-zero"`
 	BPFProfiling                       string            `config:"oneof(Disabled,Enabled);Disabled;non-zero"`
 
 	// DebugBPFCgroupV2 controls the cgroup v2 path that we apply the connect-time load balancer to.  Most distros
@@ -395,6 +405,13 @@ type Config struct {
 
 	FailsafeInboundHostPorts  []ProtoPort `config:"port-list;tcp:22,udp:68,tcp:179,tcp:2379,tcp:2380,tcp:5473,tcp:6443,tcp:6666,tcp:6667;die-on-fail"`
 	FailsafeOutboundHostPorts []ProtoPort `config:"port-list;udp:53,udp:67,tcp:179,tcp:2379,tcp:2380,tcp:5473,tcp:6443,tcp:6666,tcp:6667;die-on-fail"`
+
+	NfNetlinkBufSize int `config:"int;65536"`
+
+	FlowLogsFlushInterval          time.Duration `config:"seconds;300"`
+	FlowLogsMaxOriginalIPsIncluded int           `config:"int;50"`
+	FlowLogsCollectorDebugTrace    bool          `config:"bool;false"`
+	FlowLogsGoldmaneServer         string        `config:"string;"`
 
 	KubeNodePortRanges []numorstring.Port `config:"portrange-list;30000:32767"`
 	NATPortRange       numorstring.Port   `config:"portrange;"`
