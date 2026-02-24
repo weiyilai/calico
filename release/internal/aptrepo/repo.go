@@ -53,6 +53,9 @@ var repoDistributionsTemplate string
 
 // NewRepo creates a new Repo instance with the appropriate fields populated
 func NewRepo(tempDir, outputDir string, repoConfig RepoConfig, url string) (*Repo, error) {
+	if outputDir == "" {
+		outputDir = filepath.Join(tempDir, "_apt_output_dir")
+	}
 	repo := Repo{
 		TempDir:         tempDir,
 		BaseDirectory:   filepath.Join(tempDir, "_apt_repo_conf"),
@@ -189,7 +192,7 @@ func (repo *Repo) IncludeDeb(component, debFile string) error {
 
 	err := repo.exec("includedeb", component, debFile)
 	if err != nil {
-		return fmt.Errorf("Could not add file %s to component %s: %w", debFile, component, err)
+		return fmt.Errorf("could not add file %s to component %s: %w", debFile, component, err)
 	}
 	return nil
 }
@@ -212,7 +215,7 @@ func (repo *Repo) RecursiveAddDebsFromDirectories(searchPaths []string) error {
 		}
 	}
 	if err := errors.Join(publishingErrors...); err != nil {
-		return fmt.Errorf("Encountered errors publishing Apt repository: %w", err)
+		return fmt.Errorf("encountered errors publishing Apt repository: %w", err)
 	}
 	return nil
 }
@@ -237,7 +240,7 @@ func (repo *Repo) WriteSourcesFile(codename string) error {
 	}
 
 	if err := sourcesFields.writeAptSourcesFile(repo.OutputDirectory); err != nil {
-		return fmt.Errorf("Unable to write sources file for %s: %w", codename, err)
+		return fmt.Errorf("unable to write sources file for %s: %w", codename, err)
 	}
 	return nil
 }
