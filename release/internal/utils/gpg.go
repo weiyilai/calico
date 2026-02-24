@@ -18,8 +18,9 @@ import (
 	"fmt"
 	"strings"
 
-	"github.com/projectcalico/calico/release/internal/command"
 	"github.com/sirupsen/logrus"
+
+	"github.com/projectcalico/calico/release/internal/command"
 )
 
 // GetGPGPubKey takes a GPG key ID and fetches the ascii-armored GPG public key

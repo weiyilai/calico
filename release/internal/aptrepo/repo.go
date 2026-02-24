@@ -10,9 +10,10 @@ import (
 	"strings"
 	"text/template"
 
+	"github.com/sirupsen/logrus"
+
 	"github.com/projectcalico/calico/release/internal/command"
 	"github.com/projectcalico/calico/release/internal/utils"
-	"github.com/sirupsen/logrus"
 )
 
 // Reprepro is a terrible name but it's what we have
