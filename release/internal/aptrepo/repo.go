@@ -158,7 +158,7 @@ func (repo *Repo) WriteRepoConfig() error {
 	if err := os.MkdirAll(repo.configDirPath(), utils.DirPerms); err != nil {
 		return fmt.Errorf("failed to create config dir: %w", err)
 	}
-	repoConfigFile, err := os.OpenFile(repo.configFilePath(), os.O_CREATE|os.O_TRUNC|os.O_WRONLY, 0644)
+	repoConfigFile, err := os.OpenFile(repo.configFilePath(), os.O_CREATE|os.O_TRUNC|os.O_WRONLY, 0o644)
 	if err != nil {
 		return fmt.Errorf("failed to create config file: %w", err)
 	}
@@ -209,7 +209,6 @@ func (repo *Repo) RecursiveAddDebsFromDirectories(searchPaths []string) error {
 			if err := repo.IncludeDeb(suite, filename); err != nil {
 				publishingErrors = append(publishingErrors, err)
 			}
-
 		}
 	}
 	if err := errors.Join(publishingErrors...); err != nil {

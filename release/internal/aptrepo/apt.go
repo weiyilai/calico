@@ -76,7 +76,7 @@ var aptSourcesTemplate string
 func (asd *aptSourcesData) writeAptSourcesFile(rootPath string) error {
 	logrus.WithField("suite", asd.Suite).Info("Generating apt .sources file")
 	sourcesFilePath := filepath.Join(rootPath, fmt.Sprintf("%s.sources", asd.Suite))
-	sourcesFile, err := os.OpenFile(sourcesFilePath, os.O_APPEND|os.O_CREATE|os.O_WRONLY, 0644)
+	sourcesFile, err := os.OpenFile(sourcesFilePath, os.O_APPEND|os.O_CREATE|os.O_WRONLY, 0o644)
 	if err != nil {
 		return fmt.Errorf("opening %s: %w", sourcesFilePath, err)
 	}
