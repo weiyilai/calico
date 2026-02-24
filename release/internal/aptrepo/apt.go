@@ -67,9 +67,8 @@ type aptSourcesData struct {
 	Architectures []string
 }
 
-
 //go:embed repo.sources.gotmpl
-var aptSourcesTemplate    string
+var aptSourcesTemplate string
 
 // writeAptSourcesFile creates a deb822-style sources file for a given set
 // of parameters, and writes it to <suite>.sources under <rootPath>
@@ -81,7 +80,7 @@ func (asd *aptSourcesData) writeAptSourcesFile(rootPath string) error {
 	if err != nil {
 		return fmt.Errorf("opening %s: %w", sourcesFilePath, err)
 	}
-	defer func(){ _ = sourcesFile.Close() }()
+	defer func() { _ = sourcesFile.Close() }()
 
 	funcMap := template.FuncMap{
 		"join": strings.Join,

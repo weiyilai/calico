@@ -66,14 +66,14 @@ func CopyFile(src, dst string) error {
 
 // PathExists validates if a given (relative or absolute) path exists
 func PathExists(path string) (bool, error) {
-    _, err := os.Stat(path)
-    if err == nil {
-        return true, nil
-    }
-    if errors.Is(err, fs.ErrNotExist) {
-        return false, nil
-    }
-    return false, err
+	_, err := os.Stat(path)
+	if err == nil {
+		return true, nil
+	}
+	if errors.Is(err, fs.ErrNotExist) {
+		return false, nil
+	}
+	return false, err
 }
 
 // DirExists validates if a given (relative or absolute) path exists and

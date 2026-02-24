@@ -49,16 +49,16 @@ type Repo struct {
 }
 
 //go:embed reprepro-conf.gotmpl
-var repoDistributionsTemplate    string
+var repoDistributionsTemplate string
 
 // NewRepo creates a new Repo instance with the appropriate fields populated
 func NewRepo(tempDir, outputDir string, repoConfig RepoConfig, url string) (*Repo, error) {
 	repo := Repo{
-		TempDir: tempDir,
-		BaseDirectory: filepath.Join(tempDir, "_apt_repo_conf"),
+		TempDir:         tempDir,
+		BaseDirectory:   filepath.Join(tempDir, "_apt_repo_conf"),
 		OutputDirectory: outputDir,
-		Config: repoConfig,
-		PublishingURL: url,
+		Config:          repoConfig,
+		PublishingURL:   url,
 	}
 	return &repo, nil
 }
@@ -162,7 +162,7 @@ func (repo *Repo) WriteRepoConfig() error {
 	if err != nil {
 		return fmt.Errorf("failed to create config file: %w", err)
 	}
-	defer func(){repoConfigFile.Close()}()
+	defer func() { repoConfigFile.Close() }()
 
 	funcMap := template.FuncMap{
 		"join": strings.Join,
@@ -230,10 +230,10 @@ func (repo *Repo) WriteSourcesFile(codename string) error {
 	gpgPubKeyFormatted := formatGPGKeyForSourcesFile(gpgPubKey)
 
 	sourcesFields := aptSourcesData{
-		RepoName: repo.Config.ProductName,
-		RepoURL: repo.PublishingURL,
-		Suite: codename,
-		GpgKey: gpgPubKeyFormatted,
+		RepoName:      repo.Config.ProductName,
+		RepoURL:       repo.PublishingURL,
+		Suite:         codename,
+		GpgKey:        gpgPubKeyFormatted,
 		Architectures: repo.Config.Architectures,
 	}
 
