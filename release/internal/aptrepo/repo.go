@@ -166,7 +166,7 @@ func (repo *Repo) WriteRepoConfig() error {
 	if err != nil {
 		return fmt.Errorf("failed to create config file: %w", err)
 	}
-        defer func() { _ = repoConfigFile.Close() }()
+	defer func() { _ = repoConfigFile.Close() }()
 
 	funcMap := template.FuncMap{
 		"join": strings.Join,
