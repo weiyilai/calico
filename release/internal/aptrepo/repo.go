@@ -49,7 +49,7 @@ type Repo struct {
 	PublishingURL string
 }
 
-//go:embed reprepro-conf.gotmpl
+//go:embed templates/reprepro-conf.gotmpl
 var repoDistributionsTemplate string
 
 // NewRepo creates a new Repo instance with the appropriate fields populated

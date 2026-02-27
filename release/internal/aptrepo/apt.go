@@ -67,7 +67,7 @@ type aptSourcesData struct {
 	Architectures []string
 }
 
-//go:embed repo.sources.gotmpl
+//go:embed templates/repo.sources.gotmpl
 var aptSourcesTemplate string
 
 // writeAptSourcesFile creates a deb822-style sources file for a given set
