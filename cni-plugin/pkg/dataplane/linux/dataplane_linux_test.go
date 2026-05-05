@@ -62,7 +62,7 @@ func TestIsNetkitUnsupported(t *testing.T) {
 // for the netkit subtest, kernel 6.7+.
 func TestAddWorkloadLinkIntegration(t *testing.T) {
 	if os.Geteuid() != 0 {
-		t.Skip("skipping integration test: requires root (unshare netns)")
+		t.Fatal("integration test requires root (unshare netns); run as root or skip the package explicitly")
 	}
 
 	subtests := []struct {
@@ -79,28 +79,42 @@ func TestAddWorkloadLinkIntegration(t *testing.T) {
 	for _, tc := range subtests {
 		t.Run(tc.name, func(t *testing.T) {
 			if tc.needs67 && !kernelAtLeast(t, 6, 7) {
-				t.Skip("skipping: requires kernel 6.7+ for netkit")
+				t.Fatal("netkit subtest requires kernel 6.7+; the test environment must provide this")
 			}
 
 			hostNS, err := ns.TempNetNS()
 			if err != nil {
 				t.Fatalf("TempNetNS (host): %v", err)
 			}
-			defer func() { _ = hostNS.Close() }()
+			defer func() {
+				if err := hostNS.Close(); err != nil {
+					t.Logf("hostNS.Close: %v", err)
+				}
+			}()
 
 			contNS, err := ns.TempNetNS()
 			if err != nil {
 				t.Fatalf("TempNetNS (cont): %v", err)
 			}
-			defer func() { _ = contNS.Close() }()
+			defer func() {
+				if err := contNS.Close(); err != nil {
+					t.Logf("contNS.Close: %v", err)
+				}
+			}()
 
+			// Use a non-default MTU and queue count so we catch
+			// regressions where these aren't propagated to the peer
+			// (netkit needs them set explicitly on the peer attrs).
+			const wantMTU = 1450
+			const wantQueues = 4
 			d := &LinuxDataplane{
-				mtu:        1500,
-				queues:     1,
+				mtu:        wantMTU,
+				queues:     wantQueues,
 				deviceType: tc.request,
 				logger:     logrus.NewEntry(logrus.New()),
 			}
 			const hostName = "host0"
+			const contName = "eth0"
 
 			var gotType string
 			// Use Do (which switches via fd) rather than WithNetNSPath:
@@ -109,8 +123,10 @@ func TestAddWorkloadLinkIntegration(t *testing.T) {
 			// creating goroutine has been recycled.
 			err = contNS.Do(func(_ ns.NetNS) error {
 				la := netlink.NewLinkAttrs()
-				la.Name = "eth0"
-				la.MTU = 1500
+				la.Name = contName
+				la.MTU = wantMTU
+				la.NumTxQueues = wantQueues
+				la.NumRxQueues = wantQueues
 				var innerErr error
 				gotType, innerErr = d.addWorkloadLink(la, hostName, hostNS)
 				return innerErr
@@ -130,6 +146,15 @@ func TestAddWorkloadLinkIntegration(t *testing.T) {
 				if link.Type() != tc.wantType {
 					t.Errorf("host link kernel type = %q, want %q", link.Type(), tc.wantType)
 				}
+				if got := link.Attrs().MTU; got != wantMTU {
+					t.Errorf("host-side MTU = %d, want %d", got, wantMTU)
+				}
+				if got := link.Attrs().NumTxQueues; got != wantQueues {
+					t.Errorf("host-side NumTxQueues = %d, want %d", got, wantQueues)
+				}
+				if got := link.Attrs().NumRxQueues; got != wantQueues {
+					t.Errorf("host-side NumRxQueues = %d, want %d", got, wantQueues)
+				}
 				if tc.wantType == types.DeviceTypeNetkit {
 					nk, ok := link.(*netlink.Netkit)
 					if !ok {
@@ -143,6 +168,32 @@ func TestAddWorkloadLinkIntegration(t *testing.T) {
 			})
 			if err != nil {
 				t.Fatalf("inspecting host-side link: %v", err)
+			}
+
+			err = contNS.Do(func(_ ns.NetNS) error {
+				link, err := netlink.LinkByName(contName)
+				if err != nil {
+					return fmt.Errorf("container-side link lookup: %w", err)
+				}
+				if got := link.Attrs().MTU; got != wantMTU {
+					t.Errorf("container-side MTU = %d, want %d", got, wantMTU)
+				}
+				// vishvananda/netlink does not currently emit
+				// IFLA_NUM_*_QUEUES inside IFLA_NETKIT_PEER_INFO, so
+				// only assert peer queue counts for veth where the
+				// peer side honours LinkAttrs directly.
+				if tc.wantType == types.DeviceTypeVeth {
+					if got := link.Attrs().NumTxQueues; got != wantQueues {
+						t.Errorf("container-side NumTxQueues = %d, want %d", got, wantQueues)
+					}
+					if got := link.Attrs().NumRxQueues; got != wantQueues {
+						t.Errorf("container-side NumRxQueues = %d, want %d", got, wantQueues)
+					}
+				}
+				return nil
+			})
+			if err != nil {
+				t.Fatalf("inspecting container-side link: %v", err)
 			}
 		})
 	}

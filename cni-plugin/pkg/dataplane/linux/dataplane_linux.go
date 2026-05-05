@@ -155,7 +155,7 @@ func (d *LinuxDataplane) DoWorkloadNetnsSetUp(
 		d.logger.WithFields(logrus.Fields{
 			"type":      createdType,
 			"requested": d.deviceType,
-		}).Info("Created pod interface")
+		}).Debug("Created pod interface")
 
 		hostVeth, err := hostNlHandle.LinkByName(hostVethName)
 		if err != nil {
@@ -613,8 +613,16 @@ func (d *LinuxDataplane) addWorkloadLink(la netlink.LinkAttrs, hostName string, 
 
 		var addErr error
 		err := hostNS.Do(func(contNS ns.NetNS) error {
-			peerAttrs := netlink.NewLinkAttrs()
-			peerAttrs.Name = la.Name
+			// Mirror MTU onto the peer; unlike veth, netkit does not infer
+			// it from the primary side, so without this the container iface
+			// would default to MTU 1500 (breaking overlay/VXLAN/Wireguard
+			// MTUs that are <1500). NumTxQueues/NumRxQueues are also copied
+			// for completeness, but note that vishvananda/netlink's
+			// addNetkitAttrs does not serialize IFLA_NUM_*_QUEUES inside
+			// IFLA_NETKIT_PEER_INFO, so the container side currently always
+			// gets a single queue regardless. The host (primary) side does
+			// honour queue counts via the regular link-create path.
+			peerAttrs := la
 			peerAttrs.Namespace = netlink.NsFd(int(contNS.Fd()))
 			nk := &netlink.Netkit{
 				LinkAttrs:  primaryAttrs,
@@ -636,8 +644,7 @@ func (d *LinuxDataplane) addWorkloadLink(la netlink.LinkAttrs, hostName string, 
 			d.logger.WithError(addErr).Error("Error adding netkit link")
 			return "", addErr
 		}
-		d.logger.WithError(addErr).Info(
-			"netkit not supported on this kernel; falling back to veth")
+		d.logger.WithError(addErr).Info("netkit not supported on this kernel; falling back to veth")
 	}
 
 	veth := &netlink.Veth{
