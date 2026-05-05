@@ -613,15 +613,14 @@ func (d *LinuxDataplane) addWorkloadLink(la netlink.LinkAttrs, hostName string, 
 
 		var addErr error
 		err := hostNS.Do(func(contNS ns.NetNS) error {
-			// Mirror MTU onto the peer; unlike veth, netkit does not infer
-			// it from the primary side, so without this the container iface
-			// would default to MTU 1500 (breaking overlay/VXLAN/Wireguard
-			// MTUs that are <1500). NumTxQueues/NumRxQueues are also copied
-			// for completeness, but note that vishvananda/netlink's
-			// addNetkitAttrs does not serialize IFLA_NUM_*_QUEUES inside
-			// IFLA_NETKIT_PEER_INFO, so the container side currently always
-			// gets a single queue regardless. The host (primary) side does
-			// honour queue counts via the regular link-create path.
+			// Mirror la onto the peer (just retargeting the namespace) so
+			// the container iface inherits the requested MTU. Unlike veth,
+			// netkit does not infer the peer MTU from the primary side, so
+			// without this the container iface would default to 1500 and
+			// break overlay/VXLAN/Wireguard MTUs <1500. Note that netkit
+			// is single-TX-queue by design (kernel caps NETKIT_NUM_TX_QUEUES
+			// at 1), so any NumTxQueues>1 in la is ignored or rejected by
+			// the kernel.
 			peerAttrs := la
 			peerAttrs.Namespace = netlink.NsFd(int(contNS.Fd()))
 			nk := &netlink.Netkit{

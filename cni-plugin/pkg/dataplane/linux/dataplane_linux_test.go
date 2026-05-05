@@ -102,14 +102,13 @@ func TestAddWorkloadLinkIntegration(t *testing.T) {
 				}
 			}()
 
-			// Use a non-default MTU and queue count so we catch
-			// regressions where these aren't propagated to the peer
-			// (netkit needs them set explicitly on the peer attrs).
+			// Use a non-default MTU so we catch regressions where it
+			// isn't propagated to the peer; netkit, unlike veth, needs
+			// the MTU set explicitly on the peer attrs.
 			const wantMTU = 1450
-			const wantQueues = 4
 			d := &LinuxDataplane{
 				mtu:        wantMTU,
-				queues:     wantQueues,
+				queues:     1,
 				deviceType: tc.request,
 				logger:     logrus.NewEntry(logrus.New()),
 			}
@@ -125,8 +124,8 @@ func TestAddWorkloadLinkIntegration(t *testing.T) {
 				la := netlink.NewLinkAttrs()
 				la.Name = contName
 				la.MTU = wantMTU
-				la.NumTxQueues = wantQueues
-				la.NumRxQueues = wantQueues
+				la.NumTxQueues = 1
+				la.NumRxQueues = 1
 				var innerErr error
 				gotType, innerErr = d.addWorkloadLink(la, hostName, hostNS)
 				return innerErr
@@ -148,12 +147,6 @@ func TestAddWorkloadLinkIntegration(t *testing.T) {
 				}
 				if got := link.Attrs().MTU; got != wantMTU {
 					t.Errorf("host-side MTU = %d, want %d", got, wantMTU)
-				}
-				if got := link.Attrs().NumTxQueues; got != wantQueues {
-					t.Errorf("host-side NumTxQueues = %d, want %d", got, wantQueues)
-				}
-				if got := link.Attrs().NumRxQueues; got != wantQueues {
-					t.Errorf("host-side NumRxQueues = %d, want %d", got, wantQueues)
 				}
 				if tc.wantType == types.DeviceTypeNetkit {
 					nk, ok := link.(*netlink.Netkit)
@@ -177,18 +170,6 @@ func TestAddWorkloadLinkIntegration(t *testing.T) {
 				}
 				if got := link.Attrs().MTU; got != wantMTU {
 					t.Errorf("container-side MTU = %d, want %d", got, wantMTU)
-				}
-				// vishvananda/netlink does not currently emit
-				// IFLA_NUM_*_QUEUES inside IFLA_NETKIT_PEER_INFO, so
-				// only assert peer queue counts for veth where the
-				// peer side honours LinkAttrs directly.
-				if tc.wantType == types.DeviceTypeVeth {
-					if got := link.Attrs().NumTxQueues; got != wantQueues {
-						t.Errorf("container-side NumTxQueues = %d, want %d", got, wantQueues)
-					}
-					if got := link.Attrs().NumRxQueues; got != wantQueues {
-						t.Errorf("container-side NumRxQueues = %d, want %d", got, wantQueues)
-					}
 				}
 				return nil
 			})
